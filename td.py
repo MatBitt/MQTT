@@ -1,30 +1,67 @@
-import paho.mqtt.client as mqtt #import the client1
+import paho.mqtt.client as mqtt
 import time
 
-
 def on_message(client, userdata, message):
-    print("message received " ,str(message.payload.decode("utf-8")))
-    print("message topic=",message.topic)
-    print("message qos=",message.qos)
-    print("message retain flag=",message.retain)
+    print("Mensagem recebida: " ,str(message.payload.decode("utf-8")))
+    print("Topico: ",message.topic)
+    print("Mensagem: ",message.qos)
+    print("Flag: ",message.retain)
 
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("Conexao OK")
+    else:
+        print("Error na conexao")
 
-broker_address="192.168.1.184"
-#broker_address="iot.eclipse.org"
-print("creating new instance")
-client = mqtt.Client("P1") #create new instance
+# Ponha aqui seu ip
+broker_address = "192.168.0.10"
 
-client.on_message = on_message #attach function to callback
+# O cliente 1 so publica as informacoes. Ele e o sensor
+Cliente_1 = mqtt.Client("1")
+# Os clientes 2 e 3 sao "assinantes" do topico umidade e temperatura, respectivamente. Ele apenas leem.
+Cliente_2 = mqtt.Client("2")
+Cliente_3 = mqtt.Client("3")
 
-print("connecting to broker")
-client.connect(broker_address) #connect to broker
-client.loop_start() #start the loop
+Cliente_1.connect(broker_address)
+Cliente_2.connect(broker_address)
+Cliente_3.connect(broker_address)
 
-print("Subscribing to topic","house/bulbs/bulb1")
-client.subscribe("house/bulbs/bulb1")
+Cliente_1.on_message = on_message
+Cliente_1.on_connect = on_connect
 
-print("Publishing message to topic","house/bulbs/bulb1")
-client.publish("house/bulbs/bulb1","OFF")
+Cliente_2.on_message = on_message
+Cliente_2.on_connect = on_connect
 
-time.sleep(4) # wait
-client.loop_stop() #stop the loop
+Cliente_3.on_message = on_message
+Cliente_3.on_connect = on_connect
+
+Cliente_2.subscribe("Umidade");
+Cliente_3.subscribe("Temperatura");
+
+# Escreva o nome do arquivo no campo abaixo
+arquivo = open('teste.txt', 'r')
+
+for Linha in arquivo:
+
+   Coluna = Linha.split();
+   Umidade = Coluna[1]
+   Temperatura_Celsius = Coluna[3]
+   Temperatura_Farenheits = Coluna[4]
+
+   print("Topico: Umidade")
+   print("Mensagem publicada: "),
+   print(Umidade)
+   Cliente_1.publish("Umidade", Umidade)
+
+   print("Topico: Temperatura")
+   print("Mensagem publicada: "),
+   print (Temperatura_Celsius)
+   Cliente_1.publish("Temperatura", Temperatura_Celsius)
+
+   time.sleep(2)
+
+time.sleep(4)
+Cliente_1.loop_stop()
+
+# Para desligar o broker, basta colocar as seguintes linhas de codigo no terminal:
+# sudo service mosquitto stop
